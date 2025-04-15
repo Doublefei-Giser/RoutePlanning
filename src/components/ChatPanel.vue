@@ -47,7 +47,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { normalClient } from '../api';
 import Sidebar from './Sidebar.vue';
 import ChatFooter from './ChatFooter.vue';
-import ConfirmDialog from './ConfirmDialog.vue';
+
 
 interface Props {
   initialMessage?: string;

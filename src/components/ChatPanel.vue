@@ -30,11 +30,10 @@
       </div>
       <ChatFooter 
         :is-loading="isLoading"
-  
         @send="sendMessage"
         @new-conversation="startNewConversation"
-  
         @stop-response="stopResponse"
+        @routePlanning="handleRoutePlanning"
       />
     </div>
   </div>
@@ -54,6 +53,11 @@ interface Props {
   panelHeight?: number;
   minTransform?: number;
   maxTransform?: number;
+}
+
+interface Coordinate {
+  lat: number;
+  lng: number;
 }
 
 interface Message {
@@ -77,9 +81,8 @@ const isLoading = ref(false);
 const transform = ref(0);
 const threadId = ref<string | undefined>(undefined); // 添加 threadId 状态
 const reasoningVisible = ref<Record<number, boolean>>({}); // 添加控制思考内容显示的状态
-const toggleReasoning = (index: number) => {
-  reasoningVisible.value[index] = !reasoningVisible.value[index];
-};
+const coordinates = ref<Coordinate[]>([]); // 存储提取的经纬度数据
+
 
 // DOM 引用
 const panelRef = ref<HTMLElement | null>(null);
@@ -255,6 +258,44 @@ const stopResponse = () => {
 };
 
 // 修改 handleResponse 函数
+const extractCoordinates = (content: string): Coordinate[] => {
+  try {
+    // 首先尝试解析JSON格式
+    try {
+      const data = JSON.parse(content);
+      if (data.data && Array.isArray(data.data)) {
+        return data.data.map((item: any) => {
+          if (item.location) {
+            const [lng, lat] = item.location.split(',').map(parseFloat);
+            return { lat, lng };
+          }
+          return null;
+        }).filter(Boolean);
+      }
+    } catch (jsonError) {
+      // JSON解析失败，尝试使用正则表达式提取坐标
+      const coordPattern = /经度[:：]\s*([\d.]+)\s*[,，]\s*纬度[:：]\s*([\d.]+)/g;
+      const coordinates: Coordinate[] = [];
+      let match;
+
+      while ((match = coordPattern.exec(content)) !== null) {
+        const lng = parseFloat(match[1]);
+        const lat = parseFloat(match[2]);
+        if (!isNaN(lng) && !isNaN(lat)) {
+          coordinates.push({ lng, lat });
+        }
+      }
+
+      if (coordinates.length > 0) {
+        return coordinates;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to extract coordinates', e);
+  }
+  return [];
+};
+
 const handleResponse = async (message: string) => {
   isLoading.value = true;
   transform.value = props.minTransform;
@@ -282,7 +323,7 @@ const handleResponse = async (message: string) => {
         ...request,
         message: {
           content: {
-            type: 'text' as const, // 显式指定类型为字面量类型 'text'
+            type: 'text' as const,
             value: {
               showText: message
             }
@@ -304,6 +345,15 @@ const handleResponse = async (message: string) => {
               responseText += event.data.content;
               updateOrAddMessage('left', responseText);
               scrollToBottom();
+            }
+            break;
+
+          case 'conversation.message.completed':
+            if (event.data.type === 'tool_response') {
+              const coords = extractCoordinates(event.data.content || '');
+              if (coords.length > 0) {
+                coordinates.value = [...coordinates.value, ...coords];
+              }
             }
             break;
 
@@ -337,7 +387,12 @@ const handleResponse = async (message: string) => {
 
 // 修改 updateOrAddMessage 函数
 const updateOrAddMessage = (type: 'left' | 'right', content: string,  hasReasoning = false) => {
-  if (messages.value.length > 0 && messages.value[messages.value.length - 1].type === type) {
+const newCoords = extractCoordinates(content);
+if (newCoords.length > 0) {
+  coordinates.value = [...coordinates.value, ...newCoords];
+}
+
+if (messages.value.length > 0 && messages.value[messages.value.length - 1].type === type) {
     // 使用 setTimeout 逐步显示内容
     let currentContent = messages.value[messages.value.length - 1].content;
     const newContent = content;
@@ -435,6 +490,17 @@ const deleteConversation = (conversationId: string) => {
   // 更新本地存储
   localStorage.setItem('conversations', JSON.stringify(conversations.value));
 };
+
+// 修改handleRoutePlanning方法
+const handleRoutePlanning = () => {
+  // 触发路径规划事件
+  emit('planRoute', coordinates.value);
+};
+
+// 添加emit定义
+const emit = defineEmits<{
+  (e: 'planRoute', coordinates: Coordinate[]): void;
+}>();
 </script>
 
 <style scoped>

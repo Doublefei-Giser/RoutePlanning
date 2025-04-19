@@ -7,7 +7,7 @@
           <span>新建对话</span>
         </button>
       </div>
-      <div class="travel-main-btn-container">
+      <!-- <div class="travel-main-btn-container">
         <button 
           class="travel-main-btn" 
           :class="{ selected: currentPreference !== null }"
@@ -34,10 +34,11 @@
             <span>步行</span>
           </div>
         </div>
-      </div>
-      <div class="route-btn-container" v-if="currentPreference !== null">
-        <button class="route-btn">
+      </div> -->
+      <div class="route-btn-container">
+        <button class="route-btn" @click="handleRoutePlanning">
           <i class="fa-solid fa-route"></i>
+          <span>路径规划</span>
         </button>
       </div>
     </div>
@@ -63,7 +64,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+// import { ref, computed } from 'vue';
+import { ref } from 'vue';
 
 interface Props {
   isLoading: boolean;
@@ -75,39 +77,40 @@ const emit = defineEmits<{
   (e: 'newConversation'): void;
   (e: 'stopResponse'): void;
   (e: 'travelPreference', preference: string): void;
+  (e: 'routePlanning'): void;
 }>();
 
 const inputMessage = ref('');
-const showTravelOptions = ref(false);
-const currentPreference = ref<string | null>(null); // 修改为联合类型
+// const showTravelOptions = ref(false);
+// const currentPreference = ref<string | null>(null); // 修改为联合类型
 
-const currentPreferenceIcon = computed(() => {
-  return currentPreference.value === null ? 'fa-solid fa-question' : {
-    'drive': 'fa-solid fa-car',
-    'bus': 'fa-solid fa-bus',
-    'bike': 'fa-solid fa-bicycle',
-    'walk': 'fa-solid fa-person-walking'
-  }[currentPreference.value];
-});
+// const currentPreferenceIcon = computed(() => {
+//   return currentPreference.value === null ? 'fa-solid fa-question' : {
+//     'drive': 'fa-solid fa-car',
+//     'bus': 'fa-solid fa-bus',
+//     'bike': 'fa-solid fa-bicycle',
+//     'walk': 'fa-solid fa-person-walking'
+//   }[currentPreference.value];
+// });
 
-const currentPreferenceText = computed(() => {
-  return currentPreference.value === null ? '出行偏好' : {
-    'drive': '出行：驾车',
-    'bus': '出行：公交', 
-    'bike': '出行：骑行',
-    'walk': '出行：步行'
-  }[currentPreference.value];
-});
+// const currentPreferenceText = computed(() => {
+//   return currentPreference.value === null ? '出行偏好' : {
+//     'drive': '出行：驾车',
+//     'bus': '出行：公交', 
+//     'bike': '出行：骑行',
+//     'walk': '出行：步行'
+//   }[currentPreference.value];
+// });
 
-const handleTravelPreference = (preference: string) => {
-  currentPreference.value = preference;
-  showTravelOptions.value = false;
-  emit('travelPreference', preference);
-};
+// const handleTravelPreference = (preference: string) => {
+//   currentPreference.value = preference;
+//   showTravelOptions.value = false;
+//   emit('travelPreference', preference);
+// };
 
-const toggleTravelOptions = () => {
-  showTravelOptions.value = !showTravelOptions.value;
-};
+// const toggleTravelOptions = () => {
+//   showTravelOptions.value = !showTravelOptions.value;
+// };
 
 const handleSend = () => {
   if (!inputMessage.value.trim() || props.isLoading) return;
@@ -121,6 +124,10 @@ const handleNewConversation = () => {
 
 const handleStop = () => {
   emit('stopResponse');
+};
+const handleRoutePlanning = () => {
+  console.log('路径规划按钮被点击');
+  emit('routePlanning');
 };
 </script>
 
@@ -239,7 +246,7 @@ const handleStop = () => {
   }
 }
 
-.new-chat-btn:active, .travel-main-btn:active {
+.new-chat-btn:active, .travel-main-btn:active, .route-btn:active {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   color: #1773ec;
   border-color: #1773ec;
@@ -264,7 +271,7 @@ const handleStop = () => {
   color: #373737;
 }
 
-.route-btn {
+/* .route-btn {
   width: 25px;
   height: 25px;
   border-radius: 50%;
@@ -274,13 +281,13 @@ const handleStop = () => {
     color: white;
     border-color: #1773ec;
   }
-}
+} */
 
-
+/* 
 .route-btn i {
   font-size: 0.9rem;
   color: #373737;
-}
+} */
 
 .chat-input {
   background: #ffffff;

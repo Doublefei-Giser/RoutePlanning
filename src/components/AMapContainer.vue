@@ -1,5 +1,14 @@
 <template>
-  <div class="map" id="container"></div>
+  <div class="map-container">
+    <div class="map" id="container"></div>
+    <div class="panel-container">
+      <button @click="togglePanel" class="toggle-button">
+        <i v-if="isPanelVisible" class="fa-solid fa-angle-up"></i>
+        <i v-else class="fa-solid fa-angle-down"></i>
+      </button>
+      <div id="panel" v-show="isPanelVisible"></div> 
+    </div>
+  </div>
   <ConfirmDialog
     :is-visible="showLocationDialog"
     title="位置服务"
@@ -17,6 +26,12 @@ export default {
   components: {
     ConfirmDialog
   },
+  props: {
+    coordinates: {
+      type: Array,
+      default: () => []
+    }
+  },
   data() {
     return {
       map: null,
@@ -24,7 +39,19 @@ export default {
       infoWindow: null,
       markers: [],
       showLocationDialog: false,
-      defaultCenter: [113.324361, 23.10841]
+      defaultCenter: [113.324361, 23.10841],
+      driving: null,
+      isPanelVisible: false // 默认收起面板
+    }
+  },
+  watch: {
+    coordinates: {
+      handler(newCoordinates) {
+        if (newCoordinates.length >= 2) {
+          this.planRoute(newCoordinates)
+        }
+      },
+      deep: true
     }
   },
   mounted() {
@@ -64,12 +91,23 @@ export default {
       
       this.map = new AMap.Map('container', mapOptions)
 
-      this.placeSearch = new AMap.PlaceSearch()
-      this.infoWindow = new AMap.InfoWindow({
-        offset: new AMap.Pixel(0, -50)
-      })
+      // 确保地图初始化完成后再初始化其他服务
+      this.map.on('complete', () => {
+        this.placeSearch = new AMap.PlaceSearch()
+        this.infoWindow = new AMap.InfoWindow({
+          offset: new AMap.Pixel(0, -50)
+        })
 
-      this.setupMapEvents()
+        // 初始化驾车导航服务
+        AMap.plugin(['AMap.Driving'], () => {
+          this.driving = new AMap.Driving({
+            map: this.map,
+            panel: 'panel'
+          })
+        })
+
+        this.setupMapEvents()
+      })
     },
     setupMapEvents() {
       this.map.on('hotspotclick', async (result) => {
@@ -127,12 +165,103 @@ export default {
       s.push(`类型：${poi.type}`)
       s.push('<div>')
       return s.join('<br>')
+    },
+    // 添加路径规划方法
+    planRoute(coordinates) {
+      if (!this.driving || coordinates.length < 2) {
+        console.log('驾车规划初始化失败或坐标点不足');
+        return;
+      }
+
+      console.log('开始驾车规划，坐标点：', coordinates);
+      const start = new AMap.LngLat(coordinates[0].lng, coordinates[0].lat);
+      const end = new AMap.LngLat(coordinates[coordinates.length - 1].lng, coordinates[coordinates.length - 1].lat);
+      
+      // 构建途经点数组
+      const waypoints = coordinates.slice(1, -1).map(coord => {
+        return new AMap.LngLat(coord.lng, coord.lat);
+      });
+
+      this.driving.search(start, end, {
+        waypoints: waypoints
+      }, (status, result) => {
+        if (status === 'complete') {
+          console.log('驾车规划成功，路径数据：', result);
+        } else {
+          console.error('驾车规划失败：', result);
+        }
+      });
+    },
+    togglePanel() {
+      this.isPanelVisible = !this.isPanelVisible;
     }
   }
 }
 </script>
 
 <style scoped>
+.map-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.map {
+  width: 100%;
+  height: 100%;
+}
+
+.panel-container {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.toggle-button {
+  width: 30px; /* 设置固定宽度 */
+  height: 30px; /* 设置固定高度 */
+  padding: 0; /* 移除内边距 */
+  margin-bottom: 8px;
+  cursor: pointer;
+  background-color: #ffffff;
+  border: none;
+  border-radius: 50%; /* 设置为圆形 */
+  font-size: 16px; /* 调整图标大小 */
+  color: #333;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-button:hover {
+  background-color: #f5f5f5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+#panel {
+  width: 250px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+#panel[style*="display: none"] {
+  opacity: 0;
+  transform: translateX(20px);
+}
 .info-content img {
   float: left;
   margin: 3px;
@@ -141,22 +270,24 @@ export default {
 .amap-info-combo .keyword-input {
   height: auto;
 }
-.amap-info-content amap-info-outer{
+
+.amap-info-content amap-info-outer {
   color: #000000;
 }
+
 /* 修改高德地图信息窗体的默认样式 */
 :deep(.amap-info-content) {
-  background-color: #ffffff ;
-  color: #000000 ;
+  background-color: #ffffff;
+  color: #000000;
 }
 
 :deep(.amap-info-content .info-title) {
-  font-weight: bolder ;
-  color: #111010 ;
-  font-size: 14px ;
-  width: 250px ;
-  line-height: 26px ;
-  padding: 0 0 0 6px ;
+  font-weight: bolder;
+  color: #111010;
+  font-size: 14px;
+  width: 250px;
+  line-height: 26px;
+  padding: 0 0 0 6px;
 }
 
 :deep(.amap-info-content .info-content) {
@@ -178,7 +309,8 @@ export default {
 
 :deep(.amap-geolocation) {
   top: 10px;
-  right: 10px;
+  /* right: 10px;  调整，避免与新面板容器重叠 */
+  right: 280px; /* 根据面板宽度调整 */
   bottom: auto;
   left: auto;
 }

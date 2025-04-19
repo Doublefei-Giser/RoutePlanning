@@ -1,12 +1,13 @@
 <template>
   <div class="app">
-    <AMapContainer @send-message="handleMapMessage" />
+    <AMapContainer :coordinates="coordinates" @send-message="handleMapMessage" />
     <ChatPanel 
       ref="chatPanel" 
       :initial-message="initialMessage"
       :panel-height="panelHeight"
       :min-transform="minTransform"
       :max-transform="maxTransform"
+      @planRoute="handlePlanRoute"
     />
   </div>
 </template>
@@ -17,6 +18,12 @@ import { ref } from 'vue';
 import AMapContainer from './components/AMapContainer.vue';
 import ChatPanel from './components/ChatPanel.vue';
 
+interface Coordinate {
+  lat: number;
+  lng: number;
+}
+
+const coordinates = ref<Coordinate[]>([]);
 const chatPanel = ref<InstanceType<typeof ChatPanel> | null>(null);
 const initialMessage = ref<string>('');
 
@@ -27,6 +34,10 @@ const maxTransform = ref<number>(66);
 
 const handleMapMessage = (message: string) => {
   initialMessage.value = message;
+};
+
+const handlePlanRoute = (coords: Coordinate[]) => {
+  coordinates.value = coords;
 };
 </script>
 

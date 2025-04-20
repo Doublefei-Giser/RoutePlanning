@@ -16,7 +16,7 @@
       @select="loadConversation"
       @delete="deleteConversation"
     />
-      <div class="handle-title">地百通</div>
+      <div class="handle-title"></div>
     </div>
     <div class="chat-container">
       <div class="chat-body" ref="chatWindowRef">
@@ -396,7 +396,7 @@ if (messages.value.length > 0 && messages.value[messages.value.length - 1].type 
     // 使用 setTimeout 逐步显示内容
     let currentContent = messages.value[messages.value.length - 1].content;
     const newContent = content;
-    const interval = 15; 
+    const interval = 0; 
     let index = currentContent.length;
 
     const showNextChar = () => {

@@ -39,7 +39,7 @@ export default {
       infoWindow: null,
       markers: [],
       showLocationDialog: false,
-      defaultCenter: [113.324361, 23.10841],
+      defaultCenter: [114.3055, 30.5928],
       driving: null,
       isPanelVisible: false // 默认收起面板
     }
@@ -81,8 +81,9 @@ export default {
     initMap(useIpLocation) {
       const mapOptions = {
         resizeEnable: true,
-        zoom: 13,
-        isHotspot: true
+        zoom: 12,
+        isHotspot: true,
+        mapStyle: "amap://styles/light"
       }
       
       if (!useIpLocation) {
@@ -222,26 +223,27 @@ export default {
 }
 
 .toggle-button {
-  width: 30px; /* 设置固定宽度 */
-  height: 30px; /* 设置固定高度 */
-  padding: 0; /* 移除内边距 */
-  margin-bottom: 8px;
+  width: 30px; 
+  height: 30px; 
+  padding: 0; 
   cursor: pointer;
   background-color: #ffffff;
   border: none;
   border-radius: 50%; /* 设置为圆形 */
   font-size: 16px; /* 调整图标大小 */
   color: #333;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+.toggle-button:focus {
+  outline: none;
+}
 .toggle-button:hover {
   background-color: #f5f5f5;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transform: translateY(-1px);
 }
 
